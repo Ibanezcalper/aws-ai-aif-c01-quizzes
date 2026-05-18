@@ -54,6 +54,11 @@ Una aplicación React de grado SaaS (Software as a Service) diseñada para simul
    VITE_FIREBASE_MESSAGING_SENDER_ID="tu_messaging_sender_id"
    VITE_FIREBASE_APP_ID="tu_app_id"
    VITE_FIREBASE_MEASUREMENT_ID="tu_measurement_id"
+   
+   # Opcional: Modo Mock Local
+   # Establece esta variable en 'true' para omitir la autenticación y base de datos de Firebase.
+   # Esto utilizará un usuario ficticio y guardará el progreso en el localStorage de tu navegador.
+   VITE_USE_MOCK="true"
    ```
 
 4. **Ejecutar el servidor de desarrollo:**

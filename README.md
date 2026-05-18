@@ -54,6 +54,11 @@ A fully-featured, SaaS-grade React application designed to simulate the AWS Cert
    VITE_FIREBASE_MESSAGING_SENDER_ID="your_messaging_sender_id"
    VITE_FIREBASE_APP_ID="your_app_id"
    VITE_FIREBASE_MEASUREMENT_ID="your_measurement_id"
+   
+   # Optional: Local Mock Mode
+   # Set to 'true' to bypass Firebase authentication and Firestore.
+   # This will use a dummy user and save attempts to your browser's localStorage.
+   VITE_USE_MOCK="true"
    ```
 
 4. **Run the development server:**

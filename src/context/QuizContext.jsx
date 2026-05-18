@@ -15,10 +15,23 @@ export function QuizProvider({ children }) {
   const [attemptData, setAttemptData] = useState(null);
   const [loadingContext, setLoadingContext] = useState(false);
 
+  const useMock = import.meta.env.VITE_USE_MOCK === 'true';
+  const getMockAttempts = () => JSON.parse(localStorage.getItem(`mock_attempts_${user?.uid}`) || '{}');
+  const saveMockAttempts = (data) => localStorage.setItem(`mock_attempts_${user?.uid}`, JSON.stringify(data));
+
   // Resume an attempt if we pass an ID
   const resumeAttempt = async (attemptId) => {
     if (!user) return;
     setLoadingContext(true);
+    if (useMock) {
+      const attempts = getMockAttempts();
+      if (attempts[attemptId]) {
+        setActiveAttemptId(attemptId);
+        setAttemptData(attempts[attemptId]);
+      }
+      setLoadingContext(false);
+      return;
+    }
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', attemptId);
       const docSnap = await getDoc(docRef);
@@ -53,6 +66,16 @@ export function QuizProvider({ children }) {
       score: null
     };
 
+    if (useMock) {
+      const attempts = getMockAttempts();
+      attempts[attemptId] = newAttempt;
+      saveMockAttempts(attempts);
+      setActiveAttemptId(attemptId);
+      setAttemptData(newAttempt);
+      setLoadingContext(false);
+      return attemptId;
+    }
+
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', attemptId);
       await setDoc(docRef, newAttempt);
@@ -76,6 +99,15 @@ export function QuizProvider({ children }) {
       answers: { ...(prev?.answers || {}), [questionIndex]: selectedOptions }
     }));
 
+    if (useMock) {
+      const attempts = getMockAttempts();
+      if (attempts[activeAttemptId]) {
+        attempts[activeAttemptId].answers = { ...attempts[activeAttemptId].answers, [questionIndex]: selectedOptions };
+        saveMockAttempts(attempts);
+      }
+      return;
+    }
+
     // Persist to Firestore
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', activeAttemptId);
@@ -95,6 +127,15 @@ export function QuizProvider({ children }) {
       ...prev,
       results: { ...(prev?.results || {}), [questionIndex]: isCorrect }
     }));
+
+    if (useMock) {
+      const attempts = getMockAttempts();
+      if (attempts[activeAttemptId]) {
+        attempts[activeAttemptId].results = { ...attempts[activeAttemptId].results, [questionIndex]: isCorrect };
+        saveMockAttempts(attempts);
+      }
+      return;
+    }
 
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', activeAttemptId);
@@ -117,6 +158,15 @@ export function QuizProvider({ children }) {
       flags: { ...(prev?.flags || {}), [questionIndex]: !currentFlag }
     }));
 
+    if (useMock) {
+      const attempts = getMockAttempts();
+      if (attempts[activeAttemptId]) {
+        attempts[activeAttemptId].flags = { ...attempts[activeAttemptId].flags, [questionIndex]: !currentFlag };
+        saveMockAttempts(attempts);
+      }
+      return;
+    }
+
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', activeAttemptId);
       await updateDoc(docRef, {
@@ -133,6 +183,17 @@ export function QuizProvider({ children }) {
     
     setAttemptData(prev => ({ ...prev, status: 'completed', score }));
     
+    if (useMock) {
+      const attempts = getMockAttempts();
+      if (attempts[activeAttemptId]) {
+        attempts[activeAttemptId].status = 'completed';
+        attempts[activeAttemptId].endTime = new Date().toISOString();
+        attempts[activeAttemptId].score = score;
+        saveMockAttempts(attempts);
+      }
+      return;
+    }
+
     try {
       const docRef = doc(db, 'users', user.uid, 'attempts', activeAttemptId);
       await updateDoc(docRef, {
@@ -148,6 +209,10 @@ export function QuizProvider({ children }) {
   // Fetch all attempts for dashboard
   const getUserAttempts = async () => {
     if (!user) return [];
+    if (useMock) {
+      const attempts = getMockAttempts();
+      return Object.values(attempts).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    }
     try {
       const q = query(collection(db, 'users', user.uid, 'attempts'), orderBy('startTime', 'desc'));
       const querySnapshot = await getDocs(q);

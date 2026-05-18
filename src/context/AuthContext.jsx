@@ -12,6 +12,8 @@ import {
 import { auth, db } from '../services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+const useMock = import.meta.env.VITE_USE_MOCK === 'true';
+
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -24,7 +26,7 @@ export function AuthProvider({ children }) {
 
   // Initialize user profile in Firestore if it doesn't exist
   const initializeUserProfile = async (user, customName = null) => {
-    if (!user) return;
+    if (useMock || !user) return;
     try {
       const userRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(userRef);
@@ -42,6 +44,16 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    if (useMock) {
+      setUser({
+        uid: 'mock-user-123',
+        email: 'mock@example.com',
+        displayName: 'Usuario Mock'
+      });
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       // Opcional: si queremos bloquear a los que no han verificado su correo:
       // if (currentUser && !currentUser.emailVerified && currentUser.providerData[0].providerId === 'password') {
@@ -58,15 +70,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = () => {
+    if (useMock) return Promise.resolve({ user: { uid: 'mock-user-123' } });
     const provider = new GoogleAuthProvider();
     return signInWithPopup(auth, provider);
   };
 
   const loginWithEmail = (email, password) => {
+    if (useMock) return Promise.resolve({ user: { uid: 'mock-user-123' } });
     return signInWithEmailAndPassword(auth, email, password);
   };
 
   const registerWithEmail = async (email, password, displayName) => {
+    if (useMock) return Promise.resolve({ user: { uid: 'mock-user-123' } });
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
     // Update the profile in Firebase Auth
@@ -82,6 +97,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    if (useMock) {
+      setUser(null);
+      return Promise.resolve();
+    }
     return signOut(auth);
   };
 
